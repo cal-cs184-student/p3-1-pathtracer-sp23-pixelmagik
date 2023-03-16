@@ -48,6 +48,18 @@ void BVHAccel::drawOutline(BVHNode *node, const Color &c, float alpha) const {
   }
 }
 
+bool islargerX(vector<Primitive **> ram, vector<Primitive **> shyam) {
+    return (ram).get_bbox().centroid()[0] < (*shyam)->get_bbox().centroid()[0];
+}
+
+bool islargerY(std::vector<Primitive *>::iterator ram, std::vector<Primitive *>::iterator shyam) {
+    return (*ram)->get_bbox().centroid()[1] < (*shyam)->get_bbox().centroid()[1];
+}
+
+bool islargerZ(std::vector<Primitive *>::iterator ram, std::vector<Primitive *>::iterator shyam) {
+    return (*ram)->get_bbox().centroid()[2] < (*shyam)->get_bbox().centroid()[2];
+}
+
 BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
                                  std::vector<Primitive *>::iterator end,
                                  size_t max_leaf_size) {
@@ -73,7 +85,7 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
   }
 
   BVHNode* node = new BVHNode(bbox);
-
+   cout << "BVHNode intitalizewd";
   if (box_count <= max_leaf_size) {
       node->start = start;
       node->end = end;
@@ -96,19 +108,28 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
               best_cost = cost;
           }
       }
-      std::vector<Primitive*> left;
-      std::vector<Primitive*> right;
-      for (auto p = start; p != end; p++) {
-          BBox bb = (*p)->get_bbox();
-          if (bb.centroid()[best_axis] < big_centroid[best_axis]) {
-              left.push_back(*p);
-          }
-          else {
-              right.push_back(*p);
-          }
+
+      cout << "presort intitalizewd";
+
+      if (best_axis == 0) {
+          sort(start, end, islargerX);
+      } else if (best_axis == 1) {
+          sort(&start, &end, islargerY);
+      } else {
+          sort(&start, &end, islargerZ);
       }
-      node->l = construct_bvh(left.begin(), left.end(), max_leaf_size);
-      node->r = construct_bvh(right.begin(), right.end(), max_leaf_size);
+
+      cout << "sort intitalizewd";
+
+
+      auto right_start = start;
+      while ((*right_start)->get_bbox().centroid()[best_axis] < big_centroid[best_axis]) {
+          right_start++;
+      }
+      auto left_end = right_start;
+      left_end--;
+      node->l = construct_bvh(start, left_end, max_leaf_size);
+      node->r = construct_bvh(right_start, end, max_leaf_size);
   }
 
   return node;

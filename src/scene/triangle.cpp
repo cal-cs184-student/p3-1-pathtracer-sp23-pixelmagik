@@ -76,6 +76,7 @@ bool Triangle::intersect(const Ray &r, Intersection *isect) const {
         r.max_t = t;
         isect->t = t;
         isect->n = b1 * n1 + b2 * n2 + (1 - b1 - b2) * n3;
+        isect->n.normalize();
         isect->primitive = this;
         isect->bsdf = this->get_bsdf();
     }
