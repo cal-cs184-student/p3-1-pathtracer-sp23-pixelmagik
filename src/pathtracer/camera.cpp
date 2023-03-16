@@ -202,7 +202,7 @@ Ray Camera::generate_ray(double x, double y) const {
   Vector3D world_ray_direction = c2w * camera_ray_direction;
   world_ray_direction.normalize();
 
-  return Ray(pos, world_ray_direction);
+  return Ray(pos, world_ray_direction, nClip, fClip);
 }
 
 } // namespace CGL

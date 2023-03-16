@@ -27,9 +27,25 @@ bool Triangle::has_intersection(const Ray &r) const {
   // The difference between this function and the next function is that the next
   // function records the "intersection" while this function only tests whether
   // there is a intersection.
+	
+	// Möller–Trumbore implementation for ray-triangle intersection
+	Vector3D E1 = p2 - p1;
+	Vector3D E2 = p3 - p1;
+	Vector3D S = r.o - p1;
+	Vector3D S1 = cross(r.d, E2);
+	Vector3D S2 = cross(S, E1);
 
+	double s1e1 = dot(S1, E1);
+	double t = dot(S2, E2) / s1e1;
+	double b1 = dot(S1, S) / s1e1;
+	double b2 = dot(S2, r.d) / s1e1;
 
-  return true;
+	// Update max_t for ray to t for nearest intersection
+	double t_min = r.min_t;
+	double t_max = r.max_t;
+	r.max_t = t;
+
+  return (t <= t_max) && (t >= t_min) && (b1 <= 1) && (b1 >= 0) && (b2 <= 1) && (b2 >= 0);
 
 }
 
