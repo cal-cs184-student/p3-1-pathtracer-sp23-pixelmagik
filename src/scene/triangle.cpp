@@ -28,7 +28,7 @@ bool Triangle::has_intersection(const Ray &r) const {
   // function records the "intersection" while this function only tests whether
   // there is a intersection.
 	
-	// Möller–Trumbore implementation for ray-triangle intersection
+	// Miller Trumbore implementation for ray-triangle intersection
 	Vector3D E1 = p2 - p1;
 	Vector3D E2 = p3 - p1;
 	Vector3D S = r.o - p1;
@@ -45,7 +45,7 @@ bool Triangle::has_intersection(const Ray &r) const {
 	double t_max = r.max_t;
 	r.max_t = t;
 
-  return (t <= t_max) && (t >= t_min) && (b1 <= 1) && (b1 >= 0) && (b2 <= 1) && (b2 >= 0);
+  return (t <= t_max) && (t >= t_min) && (b1 <= 1) && (b1 >= 0) && (b2 <= 1) && (b2 >= 0) && (b1 + b2 <= 1);
 
 }
 
@@ -54,10 +54,33 @@ bool Triangle::intersect(const Ray &r, Intersection *isect) const {
   // implement ray-triangle intersection. When an intersection takes
   // place, the Intersection data should be updated accordingly
 
+    // Miller Trumbore implementation for ray-triangle intersection
+    Vector3D E1 = p2 - p1;
+    Vector3D E2 = p3 - p1;
+    Vector3D S = r.o - p1;
+    Vector3D S1 = cross(r.d, E2);
+    Vector3D S2 = cross(S, E1);
 
-  return true;
+    double s1e1 = dot(S1, E1);
+    double t = dot(S2, E2) / s1e1;
+    double b1 = dot(S1, S) / s1e1;
+    double b2 = dot(S2, r.d) / s1e1;
 
+    // Update max_t for ray to t for nearest intersection
+    double t_min = r.min_t;
+    double t_max = r.max_t;
 
+    bool has_intersect = (t <= t_max) && (t >= t_min) && (b1 <= 1) && (b1 >= 0) && (b2 <= 1) && (b2 >= 0) && (b1 + b2 <= 1);
+
+    if (has_intersect) {
+        r.max_t = t;
+        isect->t = t;
+        isect->n = b1 * n1 + b2 * n2 + (1 - b1 - b2) * n3;
+        isect->primitive = this;
+        isect->bsdf = this->get_bsdf();
+    }
+
+    return has_intersect;
 }
 
 void Triangle::draw(const Color &c, float alpha) const {
