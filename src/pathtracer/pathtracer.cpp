@@ -178,6 +178,7 @@ void PathTracer::raytrace_pixel(size_t x, size_t y) {
   // through the scene. Return the average Vector3D.
   // You should call est_radiance_global_illumination in this function.
 
+
   // TODO (Part 5):
   // Modify your implementation to include adaptive sampling.
   // Use the command line parameters "samplesPerBatch" and "maxTolerance"
@@ -185,11 +186,21 @@ void PathTracer::raytrace_pixel(size_t x, size_t y) {
   int num_samples = ns_aa;          // total samples to evaluate
   Vector2D origin = Vector2D(x, y); // bottom left corner of the pixel
 
+  size_t x_scaled = x / sampleBuffer.w;
+  size_t y_scaled = y / sampleBuffer.h;
 
-  sampleBuffer.update_pixel(Vector3D(0.2, 1.0, 0.8), x, y);
+  UniformGridSampler2D sampler2D = UniformGridSampler2D();
+
+  Vector3D sum_illum = Vector3D(0, 0, 0);
+
+  for (int i = 0; i < num_samples; i++) {
+      Vector2D rand_vec = sampler2D.get_sample() + origin;
+      Ray single_ray = camera->generate_ray(rand_vec.x / sampleBuffer.w, rand_vec.y / sampleBuffer.h);
+      sum_illum += est_radiance_global_illumination(single_ray);
+  }
+
+  sampleBuffer.update_pixel(sum_illum / num_samples, x, y);
   sampleCountBuffer[x + y * sampleBuffer.w] = num_samples;
-
-
 }
 
 void PathTracer::autofocus(Vector2D loc) {
