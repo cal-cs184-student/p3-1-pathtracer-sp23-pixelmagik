@@ -60,11 +60,13 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
 
 
   BBox bbox;
+  BBox centroid_box;
   int box_count = 0;
 
   for (auto p = start; p != end; p++) {
     BBox bb = (*p)->get_bbox();
     bbox.expand(bb);
+    centroid_box.expand(bb.centroid());
     box_count++;
   }
 
@@ -85,7 +87,7 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
           int left_count = 0;
           for (auto p = start; p != end; p++) {
               BBox bb = (*p)->get_bbox();
-              if (bb.centroid()[i] < bbox.min[i] + (bbox.extent[i] / 2)) {
+              if (bb.centroid()[i] < centroid_box.min[i] + (centroid_box.extent[i] / 2)) {
                   left_count++;
               }
           }
@@ -99,7 +101,7 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
       std::vector<Primitive*> *right = new std::vector<Primitive *>;
       for (auto p = start; p != end; p++) {
           BBox bb = (*p)->get_bbox();
-          if (bb.centroid()[best_axis] < bbox.min[best_axis] + (bbox.extent[best_axis] / 2)) {
+          if (bb.centroid()[best_axis] < centroid_box.min[best_axis] + (centroid_box.extent[best_axis] / 2)) {
               left->push_back(*p);
           }
           else {
