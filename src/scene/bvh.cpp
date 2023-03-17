@@ -79,14 +79,13 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
       node->end = end;
   }
   else {
-      Vector3D big_centroid = bbox.centroid();
       int best_axis = -1;
       int best_cost = box_count;
       for (int i = 0; i < 3; i++) {
           int left_count = 0;
           for (auto p = start; p != end; p++) {
               BBox bb = (*p)->get_bbox();
-              if (bb.centroid()[i] < bbox.min[i] + big_centroid[i]) {
+              if (bb.centroid()[i] < bbox.min[i] + (bbox.extent[i] / 2)) {
                   left_count++;
               }
           }
@@ -100,7 +99,7 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
       std::vector<Primitive*> *right = new std::vector<Primitive *>;
       for (auto p = start; p != end; p++) {
           BBox bb = (*p)->get_bbox();
-          if (bb.centroid()[best_axis] < big_centroid[best_axis]) {
+          if (bb.centroid()[best_axis] < bbox.min[best_axis] + (bbox.extent[best_axis] / 2)) {
               left->push_back(*p);
           }
           else {
