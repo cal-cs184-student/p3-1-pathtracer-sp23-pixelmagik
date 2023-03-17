@@ -82,19 +82,12 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
   }
   else {
       int best_axis = -1;
-      int best_cost = box_count;
-      for (int i = 0; i < 3; i++) {
-          int left_count = 0;
-          for (auto p = start; p != end; p++) {
-              BBox bb = (*p)->get_bbox();
-              if (bb.centroid()[i] < centroid_box.min[i] + (centroid_box.extent[i] / 2)) {
-                  left_count++;
-              }
-          }
-          int cost = abs(2 * left_count - box_count);
-          if (cost < best_cost) {
-              best_axis = i;
-              best_cost = cost;
+      int max_extent = 0;
+      for (int j = 0; j < 3; j++) {
+          double axis_extent = centroid_box.extent[j];
+          if (axis_extent > max_extent) {
+              best_axis = j;
+              max_extent = axis_extent;
           }
       }
       std::vector<Primitive*> *left = new std::vector<Primitive *>;
@@ -114,6 +107,7 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
 
   return node;
 }
+
 
 bool BVHAccel::has_intersection(const Ray &ray, BVHNode *node) const {
   // TODO (Part 2.3):
