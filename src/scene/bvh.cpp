@@ -86,7 +86,7 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
           int left_count = 0;
           for (auto p = start; p != end; p++) {
               BBox bb = (*p)->get_bbox();
-              if (bb.centroid()[i] < big_centroid[i]) {
+              if (bb.centroid()[i] < bbox.min[i] + big_centroid[i]) {
                   left_count++;
               }
           }
@@ -96,35 +96,21 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
               best_cost = cost;
           }
       }
-      std::vector<Primitive*> left = std::vector<Primitive *>();
-      std::vector<Primitive*> right = std::vector<Primitive *>();
+      std::vector<Primitive*> *left = new std::vector<Primitive *>;
+      std::vector<Primitive*> *right = new std::vector<Primitive *>;
       for (auto p = start; p != end; p++) {
           BBox bb = (*p)->get_bbox();
           if (bb.centroid()[best_axis] < big_centroid[best_axis]) {
-              left.push_back(*p);
+              left->push_back(*p);
           }
           else {
-              right.push_back(*p);
+              right->push_back(*p);
           }
       }
-//      node->l = construct_bvh(left->begin(), left->end(), max_leaf_size);
-//      node->r = construct_bvh(right->begin(), right->end(), max_leaf_size);
-
-      auto center_left = start;
-      auto center_right = start;
-      for (int i = 0; i < (end - start); i++) {
-          if (i < left.size()) {
-              *center_left = left[i];
-              center_left++;
-          }
-          else {
-              *center_right = right[i - left.size()];
-          }
-          center_right++;
-      }
-      node->l = construct_bvh(start, center_left, max_leaf_size);
-      node->r = construct_bvh(center_left, end, max_leaf_size);
+      node->l = construct_bvh(left->begin(), left->end(), max_leaf_size);
+      node->r = construct_bvh(right->begin(), right->end(), max_leaf_size);
   }
+
   return node;
 }
 
