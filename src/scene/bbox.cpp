@@ -15,14 +15,12 @@ bool BBox::intersect(const Ray& r, double& t0, double& t1) const {
 
   // TODO (Part 2.2):
   // Implement ray - bounding box intersection test
-  // If the ray intersected the bouding box within the range given by
+  // If the ray intersected the bounding box within the range given by
   // t0, t1, update t0 and t1 with the new intersection times.
 
 	Vector3D tmin = Vector3D();
 	Vector3D tmax = Vector3D();
 	double temp;
-	double new_t0;
-	double new_t1;
 
 	tmin.x = (min.x - r.o.x) / r.d.x;
 	tmax.x = (max.x - r.o.x) / r.d.x;
@@ -33,9 +31,6 @@ bool BBox::intersect(const Ray& r, double& t0, double& t1) const {
 		tmax.x = temp;
 	}
 
-	new_t0 = tmin.x;
-	new_t1 = tmax.x;
-
 	tmin.y = (min.y - r.o.y) / r.d.y;
 	tmax.y = (max.y - r.o.y) / r.d.y;
 
@@ -43,14 +38,6 @@ bool BBox::intersect(const Ray& r, double& t0, double& t1) const {
 		temp = tmin.y;
 		tmin.y = tmax.y;
 		tmax.y = temp;
-	}
-
-	if (tmin.y > new_t0) {
-		new_t0 = tmin.y;
-	}
-
-	if (tmax.y < new_t1) {
-		new_t1 = tmax.y;
 	}
 
 	tmin.z = (min.z - r.o.z) / r.d.z;
@@ -62,24 +49,21 @@ bool BBox::intersect(const Ray& r, double& t0, double& t1) const {
 		tmax.z = temp;
 	}
 
-	if (tmin.z > new_t0) {
-		new_t0 = tmin.z;
-	}
+    if (tmin.x > tmax.y || tmin.y > tmax.x || tmin.x > tmax.z || tmin.z > tmax.x || tmin.z > tmax.y || tmin.y >= tmax.z)
+            return false;
 
-	if (tmax.z < new_t1) {
-		new_t1 = tmax.z;
-	}
 
-	if ((new_t0 > new_t1) || (new_t0 < t0) || (new_t1 > t1) || (new_t0 < r.min_t) || (new_t1 > r.max_t)) {
-		return false;
-	}
+	t0 = std::max(std::max(tmin.x, tmin.y), tmin.z);
+	t1 = std::min(std::min(tmax.x, tmax.y), tmax.z);
 
-	t0 = new_t0;
-	t1 = new_t1;
+    if (t0 > r.max_t || t1 < r.min_t) {
+        return false;
+    }
 
-  return true;
+    return true;
 
 }
+
 
 void BBox::draw(Color c, float alpha) const {
 

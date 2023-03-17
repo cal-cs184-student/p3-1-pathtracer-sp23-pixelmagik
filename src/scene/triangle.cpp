@@ -45,7 +45,7 @@ bool Triangle::has_intersection(const Ray &r) const {
 	double t_max = r.max_t;
 	r.max_t = t;
 
-  return (t <= t_max) && (t >= t_min) && (b1 <= 1) && (b1 >= 0) && (b2 <= 1) && (b2 >= 0) && (b1 + b2 <= 1);
+  return (t < t_max) && (t > t_min) && (b1 <= 1) && (b1 >= 0) && (b2 <= 1) && (b2 >= 0) && (b1 + b2 <= 1);
 
 }
 
@@ -70,7 +70,7 @@ bool Triangle::intersect(const Ray &r, Intersection *isect) const {
     double t_min = r.min_t;
     double t_max = r.max_t;
 
-    bool has_intersect = (t <= t_max) && (t >= t_min) && (b1 <= 1) && (b1 >= 0) && (b2 <= 1) && (b2 >= 0) && (b1 + b2 <= 1);
+    bool has_intersect = (t < t_max) && (t > t_min) && (b1 <= 1) && (b1 >= 0) && (b2 <= 1) && (b2 >= 0) && (b1 + b2 <= 1);
 
     if (has_intersect) {
         r.max_t = t;

@@ -86,7 +86,7 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
           int left_count = 0;
           for (auto p = start; p != end; p++) {
               BBox bb = (*p)->get_bbox();
-              if (bb.centroid()[i] < big_centroid[i]) {
+              if (bb.centroid()[i] < bbox.min[i] + big_centroid[i]) {
                   left_count++;
               }
           }
@@ -112,8 +112,6 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
   }
 
   return node;
-
-
 }
 
 bool BVHAccel::has_intersection(const Ray &ray, BVHNode *node) const {
@@ -123,32 +121,53 @@ bool BVHAccel::has_intersection(const Ray &ray, BVHNode *node) const {
   // Intersection version cannot, since it returns as soon as it finds
   // a hit, it doesn't actually have to find the closest hit.
 
-
-
-  for (auto p : primitives) {
-    total_isects++;
-    if (p->has_intersection(ray))
-      return true;
+  if (!node->bb.intersect(ray, ray.min_t, ray.max_t)) {
+      return false;
   }
-  return false;
 
+
+  if (node->isLeaf()) {
+      for (auto p = node->start; p != node->end; p++) {
+          total_isects++;
+          if ((*p)->has_intersection(ray)) {
+              return true;
+          }
+      }
+      return false;
+  }
+
+  total_isects++;
+
+  return (has_intersection(ray, node->l) || has_intersection(ray, node->r));
 
 }
+
+
 
 bool BVHAccel::intersect(const Ray &ray, Intersection *i, BVHNode *node) const {
   // TODO (Part 2.3):
   // Fill in the intersect function.
 
+    bool hit = false;
 
+    if (!node->bb.intersect(ray, ray.min_t, ray.max_t)) {
+        return false;
+    }
 
-  bool hit = false;
-  for (auto p : primitives) {
+    if (node->isLeaf()) {
+        total_isects++;
+        for (auto p = node->start; p != node->end; p++) {
+            hit = ((*p)->intersect(ray, i)) || hit;
+        }
+
+        return hit;
+    }
+
     total_isects++;
-    hit = p->intersect(ray, i) || hit;
-  }
-  return hit;
+    bool left_isect = intersect(ray, i, node->l);
+    bool right_isect = intersect(ray, i, node->r);
 
-
+    return (left_isect || right_isect);
 }
 
 } // namespace SceneObjects
