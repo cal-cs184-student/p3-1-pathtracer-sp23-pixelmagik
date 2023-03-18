@@ -228,10 +228,10 @@ Vector3D PathTracer::at_least_one_bounce_radiance(const Ray &r,
   Ray in_ray = Ray(hit_p, w2o * w_in);
   in_ray.depth = r.depth - 1;
 
-//  cout << r.depth;
-//  cout << "\n ";
-//  cout << L_out.x;
-//  cout << "\n ";
+  //  cout << r.depth;
+  //  cout << "\n ";
+  //  cout << L_out.x;
+  //  cout << "\n ";
 
   if (coin_flip(prob) || (in_ray.depth <= 0)) {
       return L_out;
@@ -248,63 +248,78 @@ Vector3D PathTracer::at_least_one_bounce_radiance(const Ray &r,
 }
 
 
-Vector3D PathTracer::est_radiance_global_illumination(const Ray &r) {
-  Intersection isect;
-  Vector3D L_out;
+Vector3D PathTracer::est_radiance_global_illumination(const Ray& r) {
+    Intersection isect;
+    Vector3D L_out;
 
-  // You will extend this in assignment 3-2.
-  // If no intersection occurs, we simply return black.
-  // This changes if you implement hemispherical lighting for extra credit.
+    // You will extend this in assignment 3-2.
+    // If no intersection occurs, we simply return black.
+    // This changes if you implement hemispherical lighting for extra credit.
 
-  // The following line of code returns a debug color depending
-  // on whether ray intersection with triangles or spheres has
-  // been implemented.
-  //
-  // REMOVE THIS LINE when you are ready to begin Part 3.
-  
-  if (!bvh->intersect(r, &isect))
+    // The following line of code returns a debug color depending
+    // on whether ray intersection with triangles or spheres has
+    // been implemented.
+    //
+    // REMOVE THIS LINE when you are ready to begin Part 3.
+
+    if (!bvh->intersect(r, &isect))
+        return L_out;
+
+    // TODO (Part 3): Return the direct illumination.
+
+    // TODO (Part 4): Accumulate the "direct" and "indirect"
+    // parts of global illumination into L_out rather than just direct
+
+    L_out = zero_bounce_radiance(r, isect) + at_least_one_bounce_radiance(r, isect);
+
     return L_out;
-
-  // TODO (Part 3): Return the direct illumination.
-
-  // TODO (Part 4): Accumulate the "direct" and "indirect"
-  // parts of global illumination into L_out rather than just direct
-
-  L_out = zero_bounce_radiance(r, isect) + at_least_one_bounce_radiance(r, isect);
-
-  return L_out;
 }
 
 void PathTracer::raytrace_pixel(size_t x, size_t y) {
-  // TODO (Part 1.2):
-  // Make a loop that generates num_samples camera rays and traces them
-  // through the scene. Return the average Vector3D.
-  // You should call est_radiance_global_illumination in this function.
+    // TODO (Part 1.2):
+    // Make a loop that generates num_samples camera rays and traces them
+    // through the scene. Return the average Vector3D.
+    // You should call est_radiance_global_illumination in this function.
 
 
-  // TODO (Part 5):
-  // Modify your implementation to include adaptive sampling.
-  // Use the command line parameters "samplesPerBatch" and "maxTolerance"
+    // TODO (Part 5):
+    // Modify your implementation to include adaptive sampling.
+    // Use the command line parameters "samplesPerBatch" and "maxTolerance"
 
-  int num_samples = ns_aa;          // total samples to evaluate
-  Vector2D origin = Vector2D(x, y); // bottom left corner of the pixel
+    int total_num_samples = ns_aa;          // total samples to evaluate
+    Vector2D origin = Vector2D(x, y); // bottom left corner of the pixel
+    bool adaptive = true;
 
-  size_t x_scaled = x / sampleBuffer.w;
-  size_t y_scaled = y / sampleBuffer.h;
+    UniformGridSampler2D sampler2D = UniformGridSampler2D();
 
-  UniformGridSampler2D sampler2D = UniformGridSampler2D();
+    Vector3D sum_illum = Vector3D(0, 0, 0);
+    float s1 = 0.0;
+    float s2 = 0.0;
+    int num_samples = 0;
+    float mean;
+    float variance;
 
-  Vector3D sum_illum = Vector3D(0, 0, 0);
+    while (num_samples < total_num_samples) {
+        Vector2D rand_vec = sampler2D.get_sample() + origin;
+        Ray single_ray = camera->generate_ray(rand_vec.x / sampleBuffer.w, rand_vec.y / sampleBuffer.h);
+        single_ray.depth = max_ray_depth;
+        Vector3D illumination = est_radiance_global_illumination(single_ray);
+        sum_illum += illumination;
+        num_samples++;
+        if (adaptive && (num_samples % samplesPerBatch == 0)) {
+            float pixel_illum = illumination.illum();
+            s1 += pixel_illum;
+            s2 += (pixel_illum * pixel_illum);
+            mean = s1 / num_samples;
+            variance = (s2 - (s1 * s1 / num_samples)) / (num_samples - 1);
+            if ((1.96 * sqrt(variance / num_samples)) <= maxTolerance * mean) {
+                break;
+            }
+        }
+    }
 
-  for (int i = 0; i < num_samples; i++) {
-      Vector2D rand_vec = sampler2D.get_sample() + origin;
-      Ray single_ray = camera->generate_ray(rand_vec.x / sampleBuffer.w, rand_vec.y / sampleBuffer.h);
-      single_ray.depth = max_ray_depth;
-      sum_illum += est_radiance_global_illumination(single_ray);
-  }
-
-  sampleBuffer.update_pixel(sum_illum / num_samples, x, y);
-  sampleCountBuffer[x + y * sampleBuffer.w] = num_samples;
+    sampleBuffer.update_pixel(sum_illum / num_samples, x, y);
+    sampleCountBuffer[x + y * sampleBuffer.w] = num_samples;
 }
 
 void PathTracer::autofocus(Vector2D loc) {
