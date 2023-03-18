@@ -27,7 +27,7 @@ bool Triangle::has_intersection(const Ray &r) const {
   // The difference between this function and the next function is that the next
   // function records the "intersection" while this function only tests whether
   // there is a intersection.
-	
+
 	// Miller Trumbore implementation for ray-triangle intersection
 	Vector3D E1 = p2 - p1;
 	Vector3D E2 = p3 - p1;
@@ -83,6 +83,7 @@ bool Triangle::intersect(const Ray &r, Intersection *isect) const {
 
     return has_intersect;
 }
+
 
 void Triangle::draw(const Color &c, float alpha) const {
   glColor4f(c.r, c.g, c.b, alpha);

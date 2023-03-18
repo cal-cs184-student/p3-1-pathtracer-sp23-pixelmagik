@@ -83,6 +83,13 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
   else {
       int best_axis = -1;
       int max_extent = 0;
+
+      Vector3D mid_pt = Vector3D(0, 0, 0);
+      for (auto p = start; p != end; p++) {
+          mid_pt += (*p)->get_bbox().centroid();
+      }
+      mid_pt = mid_pt / box_count;
+
       for (int j = 0; j < 3; j++) {
           double axis_extent = centroid_box.extent[j];
           if (axis_extent > max_extent) {
@@ -94,7 +101,7 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
       std::vector<Primitive*> *right = new std::vector<Primitive *>;
       for (auto p = start; p != end; p++) {
           BBox bb = (*p)->get_bbox();
-          if (bb.centroid()[best_axis] < centroid_box.min[best_axis] + (centroid_box.extent[best_axis] / 2)) {
+          if (bb.centroid()[best_axis] < mid_pt[best_axis]) {
               left->push_back(*p);
           }
           else {
@@ -109,6 +116,7 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
 }
 
 
+
 bool BVHAccel::has_intersection(const Ray &ray, BVHNode *node) const {
   // TODO (Part 2.3):
   // Fill in the intersect function.
@@ -116,9 +124,12 @@ bool BVHAccel::has_intersection(const Ray &ray, BVHNode *node) const {
   // Intersection version cannot, since it returns as soon as it finds
   // a hit, it doesn't actually have to find the closest hit.
 
-  if (!node->bb.intersect(ray, ray.min_t, ray.max_t)) {
-      return false;
-  }
+    double min_t = ray.min_t;
+    double max_t = ray.max_t;
+
+    if (!node->bb.intersect(ray, min_t, max_t)) {
+        return false;
+    }
 
 
   if (node->isLeaf()) {
@@ -145,7 +156,10 @@ bool BVHAccel::intersect(const Ray &ray, Intersection *i, BVHNode *node) const {
 
     bool hit = false;
 
-    if (!node->bb.intersect(ray, ray.min_t, ray.max_t)) {
+    double min_t = ray.min_t;
+    double max_t = ray.max_t;
+
+    if (!node->bb.intersect(ray, min_t, max_t)) {
         return false;
     }
 
