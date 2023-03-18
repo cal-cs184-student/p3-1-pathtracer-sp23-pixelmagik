@@ -197,6 +197,25 @@ Vector3D PathTracer::at_least_one_bounce_radiance(const Ray &r,
   // Returns the one bounce radiance + radiance from extra bounces at this point.
   // Should be called recursively to simulate extra bounces.
 
+  L_out += one_bounce_radiance(r, isect);
+  Vector3D w_in;
+  double pdf;
+  double prob = 0.3;
+
+  Vector3D ref = isect.bsdf->sample_f(w_out, &w_in, &pdf);
+  Ray in_ray = Ray(hit_p, o2w * w_in);
+  in_ray.depth = r.depth - 1;
+
+  if (coin_flip(prob) || (in_ray.depth <= 0)) {
+      return L_out;
+  }
+
+  in_ray.min_t = EPS_F;
+  Intersection isect2;
+  if (bvh->intersect(in_ray, &isect2)) {
+      Vector3D fLcos = ref * at_least_one_bounce_radiance(in_ray, isect2) * abs_cos_theta(w_in);
+      L_out += fLcos / pdf / (1 - prob);
+  }
 
   return L_out;
 }
@@ -216,17 +235,16 @@ Vector3D PathTracer::est_radiance_global_illumination(const Ray &r) {
   // REMOVE THIS LINE when you are ready to begin Part 3.
   
   if (!bvh->intersect(r, &isect))
-    return envLight ? envLight->sample_dir(r) : L_out;
-
-
-  L_out = (isect.t == INF_D) ? debug_shading(r.d) : normal_shading(isect.n);
+    return L_out;
 
   // TODO (Part 3): Return the direct illumination.
 
-  return zero_bounce_radiance(r, isect) + one_bounce_radiance(r, isect);
-
   // TODO (Part 4): Accumulate the "direct" and "indirect"
   // parts of global illumination into L_out rather than just direct
+
+  L_out = zero_bounce_radiance(r, isect) + one_bounce_radiance(r, isect);
+
+  return L_out;
 }
 
 void PathTracer::raytrace_pixel(size_t x, size_t y) {
