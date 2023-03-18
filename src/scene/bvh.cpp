@@ -97,8 +97,8 @@ BVHNode *BVHAccel::construct_bvh(std::vector<Primitive *>::iterator start,
               max_extent = axis_extent;
           }
       }
-      std::vector<Primitive*> *left = new std::vector<Primitive *>;
-      std::vector<Primitive*> *right = new std::vector<Primitive *>;
+      auto *left = new std::vector<Primitive *>;
+      auto *right = new std::vector<Primitive *>;
       for (auto p = start; p != end; p++) {
           BBox bb = (*p)->get_bbox();
           if (bb.centroid()[best_axis] < mid_pt[best_axis]) {
