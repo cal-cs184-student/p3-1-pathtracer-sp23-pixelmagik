@@ -59,6 +59,8 @@ PathTracer::estimate_direct_lighting_hemisphere(const Ray &r,
   make_coord_space(o2w, isect.n);
   Matrix3x3 w2o = o2w.T();
 
+
+
   // w_out points towards the source of the ray (e.g.,
   // toward the camera if this is a primary ray)
   const Vector3D hit_p = r.o + r.d * isect.t;
@@ -71,10 +73,28 @@ PathTracer::estimate_direct_lighting_hemisphere(const Ray &r,
   Vector3D L_out;
 
   // TODO (Part 3): Write your sampling loop here
-  // TODO BEFORE YOU BEGIN
-  // UPDATE `est_radiance_global_illumination` to return direct lighting instead of normal shading 
+  for (int i = 0; i < num_samples; i++) {
 
-  return Vector3D(1.0);
+      Vector3D w_in = hemisphereSampler->get_sample();
+      Vector3D ref = isect.bsdf->f(w_out, w_in);
+      Ray in_ray = Ray(hit_p, o2w * w_in);
+      Intersection isect2 = Intersection();
+      Vector3D Li = Vector3D(0, 0, 0);
+
+      in_ray.min_t = EPS_F;
+
+      if (bvh->intersect(in_ray, &isect2)) {
+           Li = isect2.bsdf->get_emission();
+      }
+
+      L_out += 2 * PI * Li *  ref * cos_theta(w_in);
+  }
+  L_out /= num_samples;
+
+  return L_out;
+
+  // TODO BEFORE YOU BEGIN
+  // UPDATE `est_radiance_global_illumination` to return direct lighting instead of normal shading
 
 }
 
@@ -117,9 +137,15 @@ Vector3D PathTracer::one_bounce_radiance(const Ray &r,
   // TODO: Part 3, Task 3
   // Returns either the direct illumination by hemisphere or importance sampling
   // depending on `direct_hemisphere_sample`
+  Vector3D L;
 
+  if (direct_hemisphere_sample) {
+      L = estimate_direct_lighting_hemisphere(r, isect);
+  } else {
+      L = estimate_direct_lighting_importance(r, isect);
+  }
 
-  return Vector3D(1.0);
+  return L;
 
 
 }
@@ -165,10 +191,10 @@ Vector3D PathTracer::est_radiance_global_illumination(const Ray &r) {
 
   // TODO (Part 3): Return the direct illumination.
 
+  return zero_bounce_radiance(r, isect) + one_bounce_radiance(r, isect);
+
   // TODO (Part 4): Accumulate the "direct" and "indirect"
   // parts of global illumination into L_out rather than just direct
-
-  return L_out;
 }
 
 void PathTracer::raytrace_pixel(size_t x, size_t y) {
