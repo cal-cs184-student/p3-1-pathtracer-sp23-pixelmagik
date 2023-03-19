@@ -271,6 +271,7 @@ Vector3D PathTracer::est_radiance_global_illumination(const Ray &r) {
   // parts of global illumination into L_out rather than just direct
 
   L_out = zero_bounce_radiance(r, isect) + at_least_one_bounce_radiance(r, isect);
+  //L_out = zero_bounce_radiance(r, isect);
 
   return L_out;
 }
@@ -289,7 +290,7 @@ void PathTracer::raytrace_pixel(size_t x, size_t y) {
 
     int total_num_samples = (int) ns_aa;          // total samples to evaluate
     Vector2D origin = Vector2D((double) x, (double) y); // bottom left corner of the pixel
-    bool adaptive = true;
+    bool adaptive = false;
 
     UniformGridSampler2D sampler2D = UniformGridSampler2D();
 
