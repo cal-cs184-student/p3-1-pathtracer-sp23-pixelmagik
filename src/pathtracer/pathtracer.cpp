@@ -225,7 +225,7 @@ Vector3D PathTracer::at_least_one_bounce_radiance(const Ray &r,
   double prob = 0;
 
   Vector3D ref = isect.bsdf->sample_f(w_out, &w_in, &pdf);
-  Ray in_ray = Ray(hit_p, w2o * w_in);
+  Ray in_ray = Ray(hit_p, o2w * w_in);
   in_ray.depth = r.depth - 1;
 
 //  cout << r.depth;
