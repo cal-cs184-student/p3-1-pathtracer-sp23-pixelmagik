@@ -127,8 +127,10 @@ PathTracer::estimate_direct_lighting_importance(const Ray &r,
     if (light_src->is_delta_light()) {
         // sample once because point src
         Li = light_src->sample_L(hit_p, &wi, &distToLight, &pdf);
-        wi.normalize();
-        Vector3D ref = isect.bsdf->f(w_out, w2o * wi);
+        //wi.normalize();
+        Vector3D trans_wi = w2o * wi;
+        //trans_wi.normalize();
+        Vector3D ref = isect.bsdf->f(w_out, trans_wi);
         Intersection isect2 = Intersection();
         Ray in_ray = Ray(hit_p,  wi);
 
@@ -146,24 +148,27 @@ PathTracer::estimate_direct_lighting_importance(const Ray &r,
 
             // sample one location in the light
             Li = light_src->sample_L(hit_p, &wi, &distToLight, &pdf);
-            wi.normalize();
+            //wi.normalize();
+            Vector3D trans_wi = w2o * wi;
+            //trans_wi.normalize();
+
             // create ray in the appropriate direction
             Ray in_ray = Ray(hit_p,  wi);
             Intersection isect2 = Intersection();
 
             // calculate reflectance
-            Vector3D ref = isect.bsdf->f(w_out, w2o * wi);
+            Vector3D ref = isect.bsdf->f(w_out, trans_wi);
 
             in_ray.min_t = EPS_F;
             in_ray.max_t = distToLight - EPS_F;
 
             // shadow ray: ensure there is no blocking object between light and hit_p
-            if ((cos_theta(w2o * wi) < 0) || bvh->intersect(in_ray, &isect2)) {
+            if ((cos_theta(trans_wi) < 0) || bvh->intersect(in_ray, &isect2)) {
                 Li = 0;
             }
 
             // calculate total reflectance
-            L_out_ext += Li * ref * cos_theta(w2o * wi) / pdf;
+            L_out_ext += Li * ref * cos_theta(trans_wi) / pdf;
         }
 
         // add light to total irradiance
@@ -222,10 +227,14 @@ Vector3D PathTracer::at_least_one_bounce_radiance(const Ray &r,
   L_out += one_bounce_radiance(r, isect);
   Vector3D w_in;
   double pdf;
-  double prob = 0;
+  double prob = 0.3;
 
   Vector3D ref = isect.bsdf->sample_f(w_out, &w_in, &pdf);
-  Ray in_ray = Ray(hit_p, w2o * w_in);
+  //w_in.normalize();
+  Vector3D in_ray_dir = (w2o * w_in);
+  //in_ray_dir.normalize();
+  Ray in_ray = Ray(hit_p, in_ray_dir);
+
   in_ray.depth = r.depth - 1;
 
   //  cout << r.depth;
@@ -233,7 +242,7 @@ Vector3D PathTracer::at_least_one_bounce_radiance(const Ray &r,
   //  cout << L_out.x;
   //  cout << "\n ";
 
-  if (coin_flip(prob) || (in_ray.depth <= 0)) {
+  if (coin_flip(prob) || (in_ray.depth < 0)) {
       return L_out;
   }
 
@@ -286,9 +295,9 @@ void PathTracer::raytrace_pixel(size_t x, size_t y) {
     // Modify your implementation to include adaptive sampling.
     // Use the command line parameters "samplesPerBatch" and "maxTolerance"
 
-    int total_num_samples = ns_aa;          // total samples to evaluate
-    Vector2D origin = Vector2D(x, y); // bottom left corner of the pixel
-    bool adaptive = true;
+    int total_num_samples = (int) ns_aa;          // total samples to evaluate
+    Vector2D origin = Vector2D((double) x, (double) y); // bottom left corner of the pixel
+    bool adaptive = false;
 
     UniformGridSampler2D sampler2D = UniformGridSampler2D();
 
@@ -300,27 +309,81 @@ void PathTracer::raytrace_pixel(size_t x, size_t y) {
     float variance;
 
     while (num_samples < total_num_samples) {
-        Vector2D rand_vec = sampler2D.get_sample() + origin;
-        Ray single_ray = camera->generate_ray(rand_vec.x / sampleBuffer.w, rand_vec.y / sampleBuffer.h);
+        Vector2D rand_vec = gridSampler->get_sample() + origin;
+        Ray single_ray = camera->generate_ray(rand_vec.x / (double) sampleBuffer.w,
+                                              rand_vec.y / (double) sampleBuffer.h);
         single_ray.depth = max_ray_depth;
         Vector3D illumination = est_radiance_global_illumination(single_ray);
         sum_illum += illumination;
         num_samples++;
+
         if (adaptive && (num_samples % samplesPerBatch == 0)) {
             float pixel_illum = illumination.illum();
             s1 += pixel_illum;
             s2 += (pixel_illum * pixel_illum);
-            mean = s1 / num_samples;
-            variance = (s2 - (s1 * s1 / num_samples)) / (num_samples - 1);
-            if ((1.96 * sqrt(variance / num_samples)) <= maxTolerance * mean) {
+            mean = s1 / (float) num_samples;
+            variance = (s2 - (s1 * s1 / (float) num_samples)) / (float)(num_samples - 1);
+            if ((1.96 * sqrt(variance / (float) num_samples)) <= maxTolerance * mean) {
                 break;
             }
         }
     }
 
-    sampleBuffer.update_pixel(sum_illum / num_samples, x, y);
+    sampleBuffer.update_pixel(sum_illum / (double) num_samples, x, y);
     sampleCountBuffer[x + y * sampleBuffer.w] = num_samples;
 }
+
+//
+//    void PathTracer::raytrace_pixel(size_t x, size_t y) {
+//        // TODO (Part 1.2):
+//        // Make a loop that generates num_samples camera rays and traces them
+//        // through the scene. Return the average Vector3D.
+//        // You should call est_radiance_global_illumination in this function.
+//        Vector3D average = {0.0,0.0,0.0};
+//        double s1 = 0;
+//        double s2 = 0;
+//        int count = 0;
+//        for (int i = 0; i < ns_aa; i++) {
+//            count++;
+//            Vector2D sample = gridSampler->get_sample();
+//            Ray ray = camera->generate_ray((x + sample[0])/sampleBuffer.w, (y + sample[1])/sampleBuffer.h);
+//            ray.depth = max_ray_depth;
+//            Vector3D radiance = est_radiance_global_illumination(ray);
+//            average += radiance;
+//            s1 += radiance.illum();
+//            s2 += radiance.illum() * radiance.illum();
+//            if (i % samplesPerBatch == 0 && i != 0) {
+//                double variance_2 = (1.0 / (i - 1.0)) * (s2 - (s1 * s1/i));
+//                //cout<<(s2 - (s1 * s1/i))<<endl;
+//                double mean = s1/i;
+//                double bigI = 1.96 * std::sqrt(variance_2) / std::sqrt(i);
+//                if (bigI <= (maxTolerance * mean)) {
+//                    //cout<<s2 - (s1*s1/i)<<endl;
+//                    //cout<<variance_2<<endl;
+//                    //cout<<" exit"<<endl;
+//                    break;
+//                } else if (i == 64) {
+//                    //cout <<"didn't break" <<endl;
+//                }
+//            }
+//        }
+//        average = average / count;
+//        sampleBuffer.update_pixel(average, x, y);
+//        sampleCountBuffer[x + y * sampleBuffer.w] = count;
+//
+//        // TODO (Part 5):
+//        // Modify your implementation to include adaptive sampling.
+//        // Use the command line parameters "samplesPerBatch" and "maxTolerance"
+//        /*
+//        int num_samples = ns_aa;          // total samples to evaluate
+//        Vector2D origin = Vector2D(x, y); // bottom left corner of the pixel
+//        average.illum();
+//        sampleBuffer.update_pixel(Vector3D(0.2, 1.0, 0.8), x, y); */
+//
+//
+//
+//    }
+
 
 void PathTracer::autofocus(Vector2D loc) {
   Ray r = camera->generate_ray(loc.x / sampleBuffer.w, loc.y / sampleBuffer.h);
