@@ -127,9 +127,9 @@ PathTracer::estimate_direct_lighting_importance(const Ray &r,
     if (light_src->is_delta_light()) {
         // sample once because point src
         Li = light_src->sample_L(hit_p, &wi, &distToLight, &pdf);
-        //wi.normalize();
+        wi.normalize();
         Vector3D trans_wi = w2o * wi;
-        //trans_wi.normalize();
+        trans_wi.normalize();
         Vector3D ref = isect.bsdf->f(w_out, trans_wi);
         Intersection isect2 = Intersection();
         Ray in_ray = Ray(hit_p,  wi);
@@ -148,9 +148,9 @@ PathTracer::estimate_direct_lighting_importance(const Ray &r,
 
             // sample one location in the light
             Li = light_src->sample_L(hit_p, &wi, &distToLight, &pdf);
-            //wi.normalize();
+            wi.normalize();
             Vector3D trans_wi = w2o * wi;
-            //trans_wi.normalize();
+            trans_wi.normalize();
 
             // create ray in the appropriate direction
             Ray in_ray = Ray(hit_p,  wi);
@@ -230,9 +230,9 @@ Vector3D PathTracer::at_least_one_bounce_radiance(const Ray &r,
   double prob = 0.3;
 
   Vector3D ref = isect.bsdf->sample_f(w_out, &w_in, &pdf);
-  //w_in.normalize();
+  w_in.normalize();
   Vector3D in_ray_dir = (w2o * w_in);
-  //in_ray_dir.normalize();
+  in_ray_dir.normalize();
   Ray in_ray = Ray(hit_p, in_ray_dir);
 
   in_ray.depth = r.depth - 1;
@@ -242,14 +242,14 @@ Vector3D PathTracer::at_least_one_bounce_radiance(const Ray &r,
   //  cout << L_out.x;
   //  cout << "\n ";
 
-  if (coin_flip(prob) || (in_ray.depth < 0)) {
+  if ((in_ray.depth <= 0) || coin_flip(prob)) {
       return L_out;
   }
 
   in_ray.min_t = EPS_F;
   Intersection isect2;
   if (bvh->intersect(in_ray, &isect2)) {
-      Vector3D fLcos = ref * at_least_one_bounce_radiance(in_ray, isect2) * abs_cos_theta(w_in);
+      Vector3D fLcos = ref * at_least_one_bounce_radiance(in_ray, isect2) * abs_cos_theta(in_ray_dir);
       L_out += fLcos / pdf / (1 - prob);
   }
 
@@ -297,7 +297,7 @@ void PathTracer::raytrace_pixel(size_t x, size_t y) {
 
     int total_num_samples = (int) ns_aa;          // total samples to evaluate
     Vector2D origin = Vector2D((double) x, (double) y); // bottom left corner of the pixel
-    bool adaptive = false;
+    bool adaptive = true;
 
     UniformGridSampler2D sampler2D = UniformGridSampler2D();
 
@@ -309,7 +309,7 @@ void PathTracer::raytrace_pixel(size_t x, size_t y) {
     float variance;
 
     while (num_samples < total_num_samples) {
-        Vector2D rand_vec = gridSampler->get_sample() + origin;
+        Vector2D rand_vec = sampler2D.get_sample() + origin;
         Ray single_ray = camera->generate_ray(rand_vec.x / (double) sampleBuffer.w,
                                               rand_vec.y / (double) sampleBuffer.h);
         single_ray.depth = max_ray_depth;
