@@ -276,55 +276,52 @@ Vector3D PathTracer::est_radiance_global_illumination(const Ray &r) {
   return L_out;
 }
 
+    void PathTracer::raytrace_pixel(size_t x, size_t y) {
+        // TODO (Part 1.2):
+        // Make a loop that generates num_samples camera rays and traces them
+        // through the scene. Return the average Vector3D.
+        // You should call est_radiance_global_illumination in this function.
 
-void PathTracer::raytrace_pixel(size_t x, size_t y) {
-    // TODO (Part 1.2):
-    // Make a loop that generates num_samples camera rays and traces them
-    // through the scene. Return the average Vector3D.
-    // You should call est_radiance_global_illumination in this function.
+        // TODO (Part 5):
+        // Modify your implementation to include adaptive sampling.
+        // Use the command line parameters "samplesPerBatch" and "maxTolerance"
 
+        Vector2D origin = Vector2D(x, y); // bottom left corner of the pixel
+        Vector3D total = Vector3D();
+        int num_samples = 0;              // actual number of samples used
 
-    // TODO (Part 5):
-    // Modify your implementation to include adaptive sampling.
-    // Use the command line parameters "samplesPerBatch" and "maxTolerance"
+        double width = sampleBuffer.w;
+        double height = sampleBuffer.h;
 
-    int total_num_samples = (int) ns_aa;          // total samples to evaluate
-    Vector2D origin = Vector2D((double) x, (double) y); // bottom left corner of the pixel
-    bool adaptive = false;
+        double s_1 = 0;
+        double s_2 = 0;
 
-    UniformGridSampler2D sampler2D = UniformGridSampler2D();
+        for (int i = 0; i < ns_aa; i++) {
+            if (num_samples % 32 == 0) {
+                double mean = s_1 / (double)num_samples;
+                double variance = (1.0 / (num_samples - 1)) * (s_2 - (pow(s_1, 2) / num_samples));
+                double standard_dev = sqrt(variance);
 
-    Vector3D sum_illum = Vector3D(0, 0, 0);
-    float s1 = 0.0;
-    float s2 = 0.0;
-    int num_samples = 0;
-    float mean;
-    float variance;
-
-    while (num_samples < total_num_samples) {
-        Vector2D rand_vec = sampler2D.get_sample() + origin;
-        Ray single_ray = camera->generate_ray(rand_vec.x / (double) sampleBuffer.w,
-                                              rand_vec.y / (double) sampleBuffer.h);
-        single_ray.depth = max_ray_depth;
-        Vector3D illumination = est_radiance_global_illumination(single_ray);
-        sum_illum += illumination;
-        num_samples++;
-
-        if (adaptive && (num_samples % samplesPerBatch == 0)) {
-            float pixel_illum = illumination.illum();
-            s1 += pixel_illum;
-            s2 += (pixel_illum * pixel_illum);
-            mean = s1 / (float) num_samples;
-            variance = (s2 - (s1 * s1 / (float) num_samples)) / (float)(num_samples - 1);
-            if ((1.96 * sqrt(variance / (float) num_samples)) <= maxTolerance * mean) {
-                break;
+                double I = 1.96 * (standard_dev / sqrt(num_samples));
+                if (I <= maxTolerance * mean) {
+                    break;
+                }
             }
-        }
-    }
+            Vector2D sample = gridSampler->get_sample();
+            Ray ray = camera->generate_ray((origin.x + sample.x) / width, (origin.y + sample.y) / height);
+            ray.depth = max_ray_depth;
+            Vector3D radiance = PathTracer::est_radiance_global_illumination(ray);
 
-    sampleBuffer.update_pixel(sum_illum / (double) num_samples, x, y);
-    sampleCountBuffer[x + y * sampleBuffer.w] = num_samples;
-}
+            s_1 += radiance.illum();
+            s_2 += pow(radiance.illum(), 2);
+            num_samples++;
+
+            total += radiance;
+        }
+
+        sampleBuffer.update_pixel(total/(double)num_samples, x, y);
+        sampleCountBuffer[x + y * sampleBuffer.w] = num_samples;
+    }
 
 
 void PathTracer::autofocus(Vector2D loc) {
