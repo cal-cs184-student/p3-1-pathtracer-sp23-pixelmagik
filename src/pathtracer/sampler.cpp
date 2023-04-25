@@ -23,6 +23,38 @@ Vector3D UniformSphereSampler3D::get_sample() const {
   return Vector3D(cos(phi) * sinTheta, sin(phi) * sinTheta, z);
 }
 
+float schlick_phase_fn(float costheta, float k) {
+    float num = 1.0 - (pow(k, 2));
+    float denom = 4.0 * PI * (1 + k * costheta);
+    return num / denom;
+}
+
+
+
+/**
+ * A Schlick Sampler3D implementation with Schlick distribution on unit hemisphere
+ */
+Vector3D SchlickWeightedSphereSampler3D::get_sample(Vector3D in_vec, float k, float *pdf) const {
+    double z = random_uniform() * 2 - 1;
+    double sinTheta = sqrt(std::max(0.0, 1.0f - z * z));
+
+    double phi = 2.0f * PI * random_uniform();
+    Vector3D uniform_vector = Vector3D(cos(phi) * sinTheta, sin(phi) * sinTheta, z);
+    in_vec.normalize();
+    *pdf = schlick_phase_fn(dot(in_vec, uniform_vector), k);
+    return uniform_vector;
+}
+
+
+Vector3D SchlickWeightedSphereSampler3D::get_sample() const {
+    double z = random_uniform() * 2 - 1;
+    double sinTheta = sqrt(std::max(0.0, 1.0f - z * z));
+
+    double phi = 2.0f * PI * random_uniform();
+    Vector3D uniform_vector = Vector3D(cos(phi) * sinTheta, sin(phi) * sinTheta, z);
+
+    return uniform_vector;
+}
 
 /**
  * A Sampler3D implementation with uniform distribution on unit hemisphere

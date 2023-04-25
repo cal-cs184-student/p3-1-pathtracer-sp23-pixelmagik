@@ -98,6 +98,7 @@ PathTracer::estimate_direct_lighting_hemisphere(const Ray &r,
 
 }
 
+
 Vector3D
 PathTracer::estimate_direct_lighting_importance(const Ray &r,
                                                 const Intersection &isect) {
@@ -157,9 +158,24 @@ PathTracer::estimate_direct_lighting_importance(const Ray &r,
             in_ray.min_t = EPS_F;
             in_ray.max_t = distToLight - EPS_F;
 
+            float rand_val = ((float) rand() / (RAND_MAX));
+            float extinct_dist = -(::log(rand_val) / (sig_a + sig_s));
+
             // shadow ray: ensure there is no blocking object between light and hit_p
             if ((cos_theta(w2o * wi) < 0) || bvh->intersect(in_ray, &isect2)) {
                 Li = 0;
+            } else if (extinct_dist < distToLight) {
+
+                float scatter_r = ((float) rand() / (RAND_MAX));
+                float scatter_prob = sig_s / (sig_s + sig_a);
+
+                if (scatter_r > scatter_prob) {
+                    auto scatter_sampler = SchlickWeightedSphereSampler3D();
+                    float scatter_pdf;
+                    Vector3D scatter_dir = scatter_sampler.get_sample(w2o * wi, k, &scatter_pdf);
+                    scatter_dir.normalize();
+
+                }
             }
 
             // calculate total reflectance

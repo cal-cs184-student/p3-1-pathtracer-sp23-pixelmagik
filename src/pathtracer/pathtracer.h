@@ -77,6 +77,10 @@ namespace CGL {
         size_t ns_glsy;       ///< number of samples - glossy surfaces
         size_t ns_refr;       ///< number of samples - refractive surfaces
 
+        float sig_a = 0.1;
+        float sig_s = 0.1;
+        float k = 0.0;
+
         size_t samplesPerBatch;
         double maxTolerance;
         bool direct_hemisphere_sample; ///< true if sampling uniformly from hemisphere for direct lighting. Otherwise, light sample
@@ -101,6 +105,7 @@ namespace CGL {
         double tm_level;                           ///< exposure level
         double tm_key;                             ///< key value
         double tm_wht;                             ///< white point
+        float schlick_phase_fn(float costheta);
     };
 
 }  // namespace CGL
