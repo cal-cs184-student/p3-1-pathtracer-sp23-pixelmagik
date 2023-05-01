@@ -207,7 +207,8 @@ Vector3D PathTracer::one_bounce_radiance(const Ray &r,
 }
 
 Vector3D PathTracer::at_least_one_bounce_radiance(const Ray &r,
-                                                  const Intersection &isect) {
+                                                  const Intersection &isect,
+                                                  bool fog_isect) {
   Matrix3x3 o2w;
   make_coord_space(o2w, isect.n);
   Matrix3x3 w2o = o2w.T();
@@ -221,39 +222,35 @@ Vector3D PathTracer::at_least_one_bounce_radiance(const Ray &r,
   Vector3D w_in;
   Vector3D ref;
   double pdf;
-  float rand_val = ((float) rand() / (RAND_MAX));
-  float hit_fog_dist = -(::log(rand_val) / (sig_a + sig_s));
 
   // If interaction occurs
-  if (hit_fog_dist < hit_primitive_dist) {
+  if (fog_isect) {
+      // Calculating probability of scattering vs. absorption
+      float scatter_r = ((float) rand() / (RAND_MAX));
+      float scatter_prob = sig_s / (sig_s + sig_a);
 
-    // Calculating probability of scattering vs. absorption
-    float scatter_r = ((float) rand() / (RAND_MAX));
-    float scatter_prob = sig_s / (sig_s + sig_a);
-
-    if (scatter_r < scatter_prob) {
-        // If it scatters
-        auto scatter_sampler = SchlickWeightedSphereSampler3D();
-        w_in = scatter_sampler.get_sample(w_out, k, &pdf);
-        w_in.normalize();
-        ref = Vector3D(1, 1, 1) / (4 * PI);
-        L_out += one_bounce_radiance(r, isect);
-    } else {
-        // If it absorbs
-        return L_out;
-    }
-
+      if (scatter_r < scatter_prob) {
+          // If it scatters
+          auto scatter_sampler = SchlickWeightedSphereSampler3D();
+          w_in = scatter_sampler.get_sample(w_out, k, &pdf);
+          w_in.normalize();
+          ref = Vector3D(1, 1, 1) / (4 * PI);
+      } else {
+          // If it absorbs
+          return L_out;
+      }
   // If no interaction occurs
   } else {
-      L_out += one_bounce_radiance(r, isect);
       ref = isect.bsdf->sample_f(w_out, &w_in, &pdf);
   }
+
+  L_out += one_bounce_radiance(r, isect);
 
   // TODO: Part 4, Task 2
   // Returns the one bounce radiance + radiance from extra bounces at this point.
   // Should be called recursively to simulate extra bounces.
 
-
+  // If russian roulette, set to non-zero
   double prob = 0;
   Ray in_ray = Ray(hit_p, o2w * w_in);
   in_ray.depth = r.depth - 1;
@@ -265,8 +262,17 @@ Vector3D PathTracer::at_least_one_bounce_radiance(const Ray &r,
 
   in_ray.min_t = EPS_F;
   Intersection isect2;
-  if (bvh->intersect(in_ray, &isect2)) {
-      Vector3D fLcos = ref * at_least_one_bounce_radiance(in_ray, isect2) * abs_cos_theta(w_in);
+  bool prim_isect = bvh->intersect(in_ray, &isect2);
+  float rand_val = ((float) rand() / (RAND_MAX));
+  float hit_fog_dist = -(::log(rand_val) / (sig_a + sig_s));
+  fog_isect = false;
+  if (hit_fog_dist < isect2.t) {
+      fog_isect = true;
+      isect2.t = hit_fog_dist;
+      in_ray.max_t = hit_fog_dist;
+  }
+  if (fog_isect || prim_isect) {
+      Vector3D fLcos = ref * at_least_one_bounce_radiance(in_ray, isect2, fog_isect) * abs_cos_theta(w_in);
       L_out += fLcos / pdf / (1 - prob);
   }
 
@@ -287,16 +293,23 @@ Vector3D PathTracer::est_radiance_global_illumination(const Ray &r) {
   // been implemented.
   //
   // REMOVE THIS LINE when you are ready to begin Part 3.
-  
-  if (!bvh->intersect(r, &isect))
+  bool prim_isect = bvh->intersect(r, &isect);
+  if (!prim_isect)
     return L_out;
+
+  float rand_val = ((float) rand() / (RAND_MAX));
+  float hit_fog_dist = -(::log(rand_val) / (sig_a + sig_s));
+  bool fog_isect = false;
+  if (hit_fog_dist < isect.t) {
+      fog_isect = true;
+  }
 
   // TODO (Part 3): Return the direct illumination.
 
   // TODO (Part 4): Accumulate the "direct" and "indirect"
   // parts of global illumination into L_out rather than just direct
 
-  L_out = zero_bounce_radiance(r, isect) + at_least_one_bounce_radiance(r, isect);
+  L_out = zero_bounce_radiance(r, isect) + at_least_one_bounce_radiance(r, isect, fog_isect);
   //L_out = zero_bounce_radiance(r, isect);
 
   return L_out;

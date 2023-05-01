@@ -53,7 +53,7 @@ namespace CGL {
         Vector3D est_radiance_global_illumination(const Ray& r);
         Vector3D zero_bounce_radiance(const Ray& r, const SceneObjects::Intersection& isect);
         Vector3D one_bounce_radiance(const Ray& r, const SceneObjects::Intersection& isect);
-        Vector3D at_least_one_bounce_radiance(const Ray& r, const SceneObjects::Intersection& isect);
+        Vector3D at_least_one_bounce_radiance(const Ray& r, const SceneObjects::Intersection& isect, bool fog_isect);
         
         Vector3D debug_shading(const Vector3D d) {
             return Vector3D(abs(d.r), abs(d.g), .0).unit();
