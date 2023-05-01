@@ -29,8 +29,6 @@ float schlick_phase_fn(float costheta, float k) {
     return num / denom;
 }
 
-
-
 /**
  * A Schlick Sampler3D implementation with Schlick distribution on unit hemisphere
  */
