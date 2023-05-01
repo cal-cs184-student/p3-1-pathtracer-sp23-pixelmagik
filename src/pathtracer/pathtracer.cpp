@@ -181,8 +181,9 @@ Vector3D PathTracer::zero_bounce_radiance(const Ray &r,
                                           const Intersection &isect) {
   // TODO: Part 3, Task 2
   // Returns the light that results from no bounces of light
-
-  return isect.bsdf->get_emission();
+  auto emit = isect.bsdf->get_emission();
+  emit = emit * ::exp(-isect.t * (sig_s + sig_a));
+  return emit;
 
 
 }
@@ -230,12 +231,13 @@ Vector3D PathTracer::at_least_one_bounce_radiance(const Ray &r,
     float scatter_r = ((float) rand() / (RAND_MAX));
     float scatter_prob = sig_s / (sig_s + sig_a);
 
-    if (scatter_r > scatter_prob) {
+    if (scatter_r < scatter_prob) {
         // If it scatters
         auto scatter_sampler = SchlickWeightedSphereSampler3D();
         w_in = scatter_sampler.get_sample(w_out, k, &pdf);
         w_in.normalize();
         ref = Vector3D(1, 1, 1) / (4 * PI);
+        L_out += one_bounce_radiance(r, isect);
     } else {
         // If it absorbs
         return L_out;
