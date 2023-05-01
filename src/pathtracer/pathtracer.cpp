@@ -158,24 +158,9 @@ PathTracer::estimate_direct_lighting_importance(const Ray &r,
             in_ray.min_t = EPS_F;
             in_ray.max_t = distToLight - EPS_F;
 
-            float rand_val = ((float) rand() / (RAND_MAX));
-            float extinct_dist = -(::log(rand_val) / (sig_a + sig_s));
-
             // shadow ray: ensure there is no blocking object between light and hit_p
             if ((cos_theta(w2o * wi) < 0) || bvh->intersect(in_ray, &isect2)) {
                 Li = 0;
-            } else if (extinct_dist < distToLight) {
-
-                float scatter_r = ((float) rand() / (RAND_MAX));
-                float scatter_prob = sig_s / (sig_s + sig_a);
-
-                if (scatter_r > scatter_prob) {
-                    auto scatter_sampler = SchlickWeightedSphereSampler3D();
-                    float scatter_pdf;
-                    Vector3D scatter_dir = scatter_sampler.get_sample(w2o * wi, k, &scatter_pdf);
-                    scatter_dir.normalize();
-
-                }
             }
 
             // calculate total reflectance
@@ -231,25 +216,46 @@ Vector3D PathTracer::at_least_one_bounce_radiance(const Ray &r,
 
   Vector3D L_out = Vector3D(0, 0, 0);
 
-  float distToLight = isect.t;
+  float hit_primitive_dist = isect.t;
+  Vector3D w_in;
+  Vector3D ref;
+  double pdf;
+  float rand_val = ((float) rand() / (RAND_MAX));
+  float hit_fog_dist = -(::log(rand_val) / (sig_a + sig_s));
+
+  // If interaction occurs
+  if (hit_fog_dist < hit_primitive_dist) {
+
+    // Calculating probability of scattering vs. absorption
+    float scatter_r = ((float) rand() / (RAND_MAX));
+    float scatter_prob = sig_s / (sig_s + sig_a);
+
+    if (scatter_r > scatter_prob) {
+        // If it scatters
+        auto scatter_sampler = SchlickWeightedSphereSampler3D();
+        w_in = scatter_sampler.get_sample(w_out, k, &pdf);
+        w_in.normalize();
+        ref = Vector3D(1, 1, 1) / (4 * PI);
+    } else {
+        // If it absorbs
+        return L_out;
+    }
+
+  // If no interaction occurs
+  } else {
+      L_out += one_bounce_radiance(r, isect);
+      ref = isect.bsdf->sample_f(w_out, &w_in, &pdf);
+  }
 
   // TODO: Part 4, Task 2
   // Returns the one bounce radiance + radiance from extra bounces at this point.
   // Should be called recursively to simulate extra bounces.
 
-  L_out += one_bounce_radiance(r, isect);
-  Vector3D w_in;
-  double pdf;
-  double prob = 0;
 
-  Vector3D ref = isect.bsdf->sample_f(w_out, &w_in, &pdf);
+  double prob = 0;
   Ray in_ray = Ray(hit_p, o2w * w_in);
   in_ray.depth = r.depth - 1;
 
-//  cout << r.depth;
-//  cout << "\n ";
-//  cout << L_out.x;
-//  cout << "\n ";
 
   if (coin_flip(prob) || (in_ray.depth <= 0)) {
       return L_out;

@@ -32,14 +32,14 @@ float schlick_phase_fn(float costheta, float k) {
 /**
  * A Schlick Sampler3D implementation with Schlick distribution on unit hemisphere
  */
-Vector3D SchlickWeightedSphereSampler3D::get_sample(Vector3D in_vec, float k, float *pdf) const {
+Vector3D SchlickWeightedSphereSampler3D::get_sample(Vector3D w_out, float k, double *pdf) const {
     double z = random_uniform() * 2 - 1;
     double sinTheta = sqrt(std::max(0.0, 1.0f - z * z));
 
     double phi = 2.0f * PI * random_uniform();
     Vector3D uniform_vector = Vector3D(cos(phi) * sinTheta, sin(phi) * sinTheta, z);
-    in_vec.normalize();
-    *pdf = schlick_phase_fn(dot(in_vec, uniform_vector), k);
+    w_out.normalize();
+    *pdf = schlick_phase_fn(dot(w_out, uniform_vector), k);
     return uniform_vector;
 }
 

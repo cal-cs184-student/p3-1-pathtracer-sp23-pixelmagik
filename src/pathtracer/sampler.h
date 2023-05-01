@@ -99,7 +99,7 @@ public:
 
     Vector3D get_sample() const;
     // Also returns the pdf at the sample point for use in importance sampling.
-    Vector3D get_sample(Vector3D in_vec, float k, float *pdf) const;
+    Vector3D get_sample(Vector3D w_out, float k, double *pdf) const;
 
 }; // class UniformHemisphereSampler3D
 

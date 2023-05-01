@@ -78,7 +78,7 @@ namespace CGL {
         size_t ns_refr;       ///< number of samples - refractive surfaces
 
         float sig_a = 0.1;
-        float sig_s = 0.1;
+        float sig_s = 0.3;
         float k = 0.0;
 
         size_t samplesPerBatch;
