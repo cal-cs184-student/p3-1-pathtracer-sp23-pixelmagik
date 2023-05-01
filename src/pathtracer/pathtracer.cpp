@@ -100,8 +100,8 @@ namespace CGL {
 
 
     Vector3D
-    PathTracer::estimate_direct_lighting_importance(const Ray &r,
-                                                    const Intersection &isect) {
+    PathTracer::estimate_direct_lighting_importance(const Ray &r, const SceneObjects::Intersection &isect,
+                                                    bool fog_isect) {
         // Estimate the lighting from this intersection coming directly from a light.
         // To implement importance sampling, sample only from lights, not uniformly in
         // a hemisphere.
@@ -124,12 +124,13 @@ namespace CGL {
             auto wi = Vector3D();
             double distToLight;
             double pdf;
+            Vector3D ref;
 
             if (light_src->is_delta_light()) {
                 // sample once because point src
                 Li = light_src->sample_L(hit_p, &wi, &distToLight, &pdf);
                 wi.normalize();
-                Vector3D ref = isect.bsdf->f(w_out, w2o * wi);
+                ref = isect.bsdf->f(w_out, w2o * wi);
                 Intersection isect2 = Intersection();
                 Ray in_ray = Ray(hit_p,  wi);
 
@@ -153,7 +154,11 @@ namespace CGL {
                     Intersection isect2 = Intersection();
 
                     // calculate reflectance
-                    Vector3D ref = isect.bsdf->f(w_out, w2o * wi);
+                    if (fog_isect) {
+                        ref = Vector3D(1, 1, 1);
+                    } else {
+                        ref = isect.bsdf->f(w_out, w2o * wi);
+                    }
 
                     in_ray.min_t = EPS_F;
                     in_ray.max_t = distToLight - EPS_F;
@@ -188,8 +193,7 @@ namespace CGL {
 
     }
 
-    Vector3D PathTracer::one_bounce_radiance(const Ray &r,
-                                             const Intersection &isect) {
+    Vector3D PathTracer::one_bounce_radiance(const Ray &r, const SceneObjects::Intersection &isect, bool fog_isect) {
         // TODO: Part 3, Task 3
         // Returns either the direct illumination by hemisphere or importance sampling
         // depending on `direct_hemisphere_sample`
@@ -198,18 +202,12 @@ namespace CGL {
         if (direct_hemisphere_sample) {
             L = estimate_direct_lighting_hemisphere(r, isect);
         } else {
-            L = estimate_direct_lighting_importance(r, isect);
+            L = estimate_direct_lighting_importance(r, isect, fog_isect);
         }
 
         return L;
 
 
-    }
-
-    Vector3D PathTracer::fog_bounce_radiance(const Ray &r,
-                                             const Intersection &isect) {
-        // implement illumination in case of bounce on dust particle
-        return Vector3D(0, 0, 0);
     }
 
     Vector3D PathTracer::at_least_one_bounce_radiance(const Ray &r,
@@ -241,7 +239,7 @@ namespace CGL {
                 w_in = scatter_sampler.get_sample(w_out, k, &pdf);
                 w_in.normalize();
                 ref = Vector3D(1, 1, 1) / (4 * PI);
-                L_out += fog_bounce_radiance(r, isect);
+                L_out += one_bounce_radiance(r, isect, true);
             } else {
                 // If it absorbs
                 return L_out;
@@ -249,7 +247,7 @@ namespace CGL {
             // If no interaction occurs
         } else {
             ref = isect.bsdf->sample_f(w_out, &w_in, &pdf);
-            L_out += one_bounce_radiance(r, isect);
+            L_out += one_bounce_radiance(r, isect, false);
         }
 
         // TODO: Part 4, Task 2
@@ -275,7 +273,10 @@ namespace CGL {
         if (hit_fog_dist < isect2.t) {
             fog_isect = true;
             isect2.t = hit_fog_dist;
-            in_ray.max_t = hit_fog_dist;
+            if (!prim_isect) {
+                isect2.n = isect.n;
+            }
+//            in_ray.max_t = hit_fog_dist;
         }
         if (fog_isect || prim_isect) {
             Vector3D fLcos = ref * at_least_one_bounce_radiance(in_ray, isect2, fog_isect) * abs_cos_theta(w_in);
@@ -300,15 +301,22 @@ namespace CGL {
         //
         // REMOVE THIS LINE when you are ready to begin Part 3.
         bool prim_isect = bvh->intersect(r, &isect);
-        if (!prim_isect)
+        if (!prim_isect) {
             return L_out;
+        }
 
         float rand_val = ((float) rand() / (RAND_MAX));
         float hit_fog_dist = -(::log(rand_val) / (sig_a + sig_s));
         bool fog_isect = false;
         if (hit_fog_dist < isect.t) {
             fog_isect = true;
+            isect.t = hit_fog_dist;
+            isect.n = Vector3D(0, 0, 1);
         }
+
+//        if (!prim_isect && !fog_isect) {
+//            return L_out;
+//        }
 
         // TODO (Part 3): Return the direct illumination.
 

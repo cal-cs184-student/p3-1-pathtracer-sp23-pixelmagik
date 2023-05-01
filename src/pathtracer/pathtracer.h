@@ -48,11 +48,12 @@ namespace CGL {
          * Trace an ray in the scene.
          */
         Vector3D estimate_direct_lighting_hemisphere(const Ray& r, const SceneObjects::Intersection& isect);
-        Vector3D estimate_direct_lighting_importance(const Ray& r, const SceneObjects::Intersection& isect);
+        Vector3D
+        estimate_direct_lighting_importance(const Ray &r, const SceneObjects::Intersection &isect, bool fog_isect);
 
         Vector3D est_radiance_global_illumination(const Ray& r);
         Vector3D zero_bounce_radiance(const Ray& r, const SceneObjects::Intersection& isect);
-        Vector3D one_bounce_radiance(const Ray& r, const SceneObjects::Intersection& isect);
+        Vector3D one_bounce_radiance(const Ray &r, const SceneObjects::Intersection &isect, bool fog_isect);
         Vector3D at_least_one_bounce_radiance(const Ray& r, const SceneObjects::Intersection& isect, bool fog_isect);
         
         Vector3D debug_shading(const Vector3D d) {
@@ -77,8 +78,8 @@ namespace CGL {
         size_t ns_glsy;       ///< number of samples - glossy surfaces
         size_t ns_refr;       ///< number of samples - refractive surfaces
 
-        float sig_a = 0.4;
-        float sig_s = 0.7;
+        float sig_a = 0.1;
+        float sig_s = 0.3;
         float k = 0.0;
 
         size_t samplesPerBatch;
