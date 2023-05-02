@@ -34,8 +34,8 @@ void usage(const char* binaryName) {
   printf("  -f  <FILENAME>   Image (.png) file to save output to in windowless mode\n");
   printf("  -r  <INT> <INT>  Width and height of output image (if windowless)\n");
   printf("  -h               Print this help message\n");
-  printf("  -sigs  <FLOAT>   Scattering coefficient\n");
-  printf("  -siga  <FLOAT>   Absorption coefficient\n");
+  printf("  -x  <FLOAT>      Absroption coefficient\n");
+  printf("  -y  <FLOAT>      Scattering coefficient\n");
   printf("  -k     <FLOAT>   Scattering Parameter k\n");
   printf("\n");
 }
@@ -86,7 +86,7 @@ int main( int argc, char** argv ) {
   bool write_to_file = false;
   size_t w = 0, h = 0, x = -1, y = 0, dx = 0, dy = 0;
   string filename, cam_settings = "";
-  while ( (opt = getopt(argc, argv, "s:l:t:m:e:h:H:f:r:c:b:d:a:p:sigs:siga:k:")) != -1 ) {  // for each option...
+  while ( (opt = getopt(argc, argv, "s:l:t:m:e:h:H:f:r:c:b:d:a:p:x:y:k:")) != -1 ) {  // for each option...
     switch ( opt ) {
     case 'f':
       write_to_file = true;
@@ -129,11 +129,11 @@ int main( int argc, char** argv ) {
     case 'd':
       config.pathtracer_focalDistance = atof(optarg);
       break;
-    case 'sigs':
-      config.pathtracer_sigs = atof(optarg);
-      break;
-    case 'siga':
+    case 'x':
       config.pathtracer_siga = atof(optarg);
+      break;
+    case 'y':
+      config.pathtracer_sigs = atof(optarg);
       break;
     case 'k':
       config.pathtracer_k = atof(optarg);
