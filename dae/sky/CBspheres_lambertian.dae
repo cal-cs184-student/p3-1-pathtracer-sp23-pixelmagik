@@ -14,7 +14,7 @@
     <light id="Area-light" name="Light">
       <technique_common>
         <point>
-          <color sid="color">10 10 10</color>
+          <color sid="color">20 5 20</color>
           <constant_attenuation>1</constant_attenuation>
           <linear_attenuation>0</linear_attenuation>
           <quadratic_attenuation>0.001599967</quadratic_attenuation>
@@ -23,7 +23,7 @@
       <extra>
         <technique profile="CGL">
           <area>
-            <color sid="color">10 10 10</color>
+            <color sid="color">20 5 20</color>
           </area>
         </technique>
       </extra>
@@ -352,7 +352,7 @@
     <geometry id="light-mesh" name="light">
       <mesh>
         <source id="light-mesh-positions">
-          <float_array id="light-mesh-positions-array" count="12">0.4 1.49 -0.3 0.4 1.49 0.3 -0.4 1.49 0.3 -0.4 1.49 -0.3</float_array>
+          <float_array id="light-mesh-positions-array" count="12">0.02 1.49 -0.02 0.02 1.49 0.02 -0.02 1.49 0.02 -0.02 1.49 -0.02</float_array>
           <technique_common>
             <accessor source="#light-mesh-positions-array" count="4" stride="3">
               <param name="X" type="float"/>

@@ -187,7 +187,13 @@ namespace CGL {
         // TODO: Part 3, Task 2
         // Returns the light that results from no bounces of light
         auto emit = isect.bsdf->get_emission();
-        emit = emit * ::exp(-isect.t * (sig_s + sig_a));
+        float prob_transmit = ::exp(-isect.t * (sig_s + sig_a));
+        float transmit_r = ((float) rand() / (RAND_MAX));
+
+        if (transmit_r > prob_transmit) {
+            return 0;
+        }
+
         return emit;
 
 
