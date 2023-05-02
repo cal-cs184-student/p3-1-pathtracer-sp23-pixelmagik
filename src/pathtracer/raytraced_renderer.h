@@ -74,7 +74,10 @@ public:
              bool direct_hemisphere_sample = false,
              string filename = "",
              double lensRadius = 0.25,
-             double focalDistance = 4.7);
+             double focalDistance = 4.7,
+             float siga = 0.3,
+             float sigs = 0.1,
+             float k = 0.0);
 
   /**
    * Destructor.

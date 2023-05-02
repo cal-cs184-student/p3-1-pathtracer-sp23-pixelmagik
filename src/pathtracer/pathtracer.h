@@ -78,8 +78,8 @@ namespace CGL {
         size_t ns_glsy;       ///< number of samples - glossy surfaces
         size_t ns_refr;       ///< number of samples - refractive surfaces
 
-        float sig_a = 0.2;
-        float sig_s = 0.3;
+        float sig_a = 0.0;
+        float sig_s = 0.0;
         float k = 0;
 
         size_t samplesPerBatch;
